@@ -1,0 +1,296 @@
+{
+  "name": "Lyrics Finder",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9d8b0981-771f-48d2-b67a-42b61c616236",
+      "name": "When chat message received",
+      "webhookId": "fe6e96b6-f10e-482f-b75e-dc5f223f2c69"
+    },
+    {
+      "parameters": {
+        "text": "=extract the artist and title of the song from this input. Be sure to validate to make sure the artist and title are correct.\n{{ $('When chat message received').item.json.chatInput }}\nif the input is something like 'list the tools' then make the artist = 'list the tools'",
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n\t\"artist\": \"Billy Idol\",\n\t\"title\": \"White Wedding\"\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1,
+      "position": [
+        200,
+        0
+      ],
+      "id": "ceb7ad8d-010a-4cba-8c53-f66f86324f7f",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        180,
+        200
+      ],
+      "id": "22cd59e0-2136-4b6d-b346-180147632ce3",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "DZaBabO9u605tAtZ",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=-if artist='list the tools', pass that along to the MCP tool. \n-copy these lyrics into a google doc. Make a header out of the title and artist. For example:\n{{ $('Information Extractor').item.json.output.title }} - {{ $('Information Extractor').item.json.output.artist }}\n\n{{ $('Get_Lyrics').item.json.lyrics }}",
+        "options": {
+          "systemMessage": "You are a helpful assistant.\nGet the lyrics that are sent into you and write them to a google doc"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        940,
+        -20
+      ],
+      "id": "db25413f-05d6-4e97-af35-3ef8f2769120",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        240
+      ],
+      "id": "381a8a49-4450-4257-9447-cc4e5110474c",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "DZaBabO9u605tAtZ",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sseEndpoint": "https://emooney.app.n8n.cloud/mcp/mcp-test/sse"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1,
+      "position": [
+        1180,
+        280
+      ],
+      "id": "0ae3e7ef-8e6c-4283-ae85-6fd85ff5dd52",
+      "name": "MCP Client"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When chat message received').item.json.sessionId }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1060,
+        220
+      ],
+      "id": "840892c8-de33-4ac5-a7e3-e40fa735a760",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "55af77d6-d948-40d8-9b7d-c967db26fa99",
+              "leftValue": "={{ $json.output.artist }}",
+              "rightValue": "list",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "4433b133-cd24-4c0c-8b12-0112288cd477",
+              "leftValue": "={{ $json.output.artist }}",
+              "rightValue": "tool",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        540,
+        20
+      ],
+      "id": "d06216cb-098d-49d5-b93c-8e629b919725",
+      "name": "Got The Name/Artist?"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.lyrics.ovh/v1/{{ $json.output.artist }}/{{ $json.output.title }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        80
+      ],
+      "id": "363349ec-1d00-4ac9-8014-ab050c2b5096",
+      "name": "Get_Lyrics",
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Got The Name/Artist?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Got The Name/Artist?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get_Lyrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Lyrics": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "faa801e3-6f7e-478f-ac7f-4197add2c574",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "c1cc2e18d32a91e26eb78bbc6373615a06451476e56efe94394fc82c93d00305"
+  },
+  "id": "rOT7KI17h1ylf8NS",
+  "tags": []
+}
