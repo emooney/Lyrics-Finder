@@ -47,10 +47,6 @@ The workflow will extract the information, fetch the lyrics, and save them to a 
 - This workflow uses the free lyrics.ovh API which may have rate limits or service interruptions
 - The information extraction works best with clear artist and song title mentions
 
-## License
-
-[Add your chosen license here]
-
 ## Author
 
-[Your name/username]
+emooney
